@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0](https://github.com/HasanDeeb7/release-please/compare/v1.0.1...v2.0.0) (2026-05-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* a major update
+
+### Features
+
+* a major update ([4d1a1b6](https://github.com/HasanDeeb7/release-please/commit/4d1a1b6a01fc81927b09db113a2aa7d6d402941d))
+
 ## [1.0.1](https://github.com/HasanDeeb7/release-please/compare/v1.0.0...v1.0.1) (2026-05-07)
 
 
