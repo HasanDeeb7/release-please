@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](https://github.com/HasanDeeb7/release-please/compare/v2.0.0...v2.0.1) (2026-05-07)
+
+
+### Bug Fixes
+
+* fixes ([1fdbbd9](https://github.com/HasanDeeb7/release-please/commit/1fdbbd9131ecdb5bfb3df12c028e913ae822abdf))
+
 ## [2.0.0](https://github.com/HasanDeeb7/release-please/compare/v1.0.1...v2.0.0) (2026-05-07)
 
 
