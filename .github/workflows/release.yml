@@ -17,3 +17,4 @@ jobs:
         with:
           # This 'node' type automatically looks for your package.json
           release-type: node
+          config-file: release-please-config.json
