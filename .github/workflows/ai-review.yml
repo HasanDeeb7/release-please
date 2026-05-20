@@ -14,11 +14,13 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
+        with:
+          # CRITICAL FIX: Downloads full history so git diff doesn't throw a 128 error
+          fetch-depth: 0
 
       - name: Gemini AI Reviewer
         uses: sshnaidm/gemini-code-review-action@v2
         with:
-          # Match your exact GitHub Secret name
           gemini-key: ${{ secrets.GEMINI_FLASH }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           model: 'gemini-2.5-flash'
