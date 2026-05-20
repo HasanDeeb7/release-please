@@ -15,13 +15,13 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v4
 
-      - name: Gemini PR Reviewer
-        uses: mshick/gemini-pr-reviewer-action@v1 # Free open-source wrapper
+      - name: Gemini AI Reviewer
+        uses: sshnaidm/gemini-code-review-action@v2
         with:
-          gemini_api_key: ${{ secrets.GEMINI_FLASH }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          model: 'gemini-2.5-flash' # The fast, free-tier model
-          instructions: |
-            You are a Next.js and TypeScript expert. 
-            Review this PR diff. Point out bugs, edge cases, or bad Next.js practices (like wrong 'use client' usage).
-            Be concise and only comment if there is an actual issue.
+          gemini-key: ${{ secrets.GEMINI_FLASH }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          model: 'gemini-2.5-flash' # Using the fast, free-tier model
+          prompt: |
+            You are an expert Next.js and TypeScript senior engineer reviewing a Pull Request. 
+            Review the code diff and point out major bugs, performance bottlenecks, or bad Next.js layout/component patterns.
+            Be concise and only leave comments where an actual issue or improvement is found. Avoid nitpicking style or formatting.
