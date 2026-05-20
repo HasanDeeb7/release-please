@@ -23,5 +23,8 @@ jobs:
           model: 'gemini-2.5-flash' # Using the fast, free-tier model
           prompt: |
             You are an expert Next.js and TypeScript senior engineer reviewing a Pull Request. 
+            
+            CRITICAL RULE: Check the code diff for any imports coming from the '.yalc/' directory (e.g., import ... from '.yalc/...'). If you find any, explicitly state "PR REJECTED: Local .yalc imports detected. Please remove local package links before merging." in bold letters at the very top of your comment.
+            
             Review the code diff and point out major bugs, performance bottlenecks, or bad Next.js layout/component patterns.
             Be concise and only leave comments where an actual issue or improvement is found. Avoid nitpicking style or formatting.
