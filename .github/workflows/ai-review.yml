@@ -1,0 +1,27 @@
+name: Free AI PR Reviewer
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Gemini PR Reviewer
+        uses: mshick/gemini-pr-reviewer-action@v1 # Free open-source wrapper
+        with:
+          gemini_api_key: ${{ secrets.GEMINI_FLASH }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          model: 'gemini-2.5-flash' # The fast, free-tier model
+          instructions: |
+            You are a Next.js and TypeScript expert. 
+            Review this PR diff. Point out bugs, edge cases, or bad Next.js practices (like wrong 'use client' usage).
+            Be concise and only comment if there is an actual issue.
