@@ -18,13 +18,20 @@ jobs:
       - name: Gemini AI Reviewer
         uses: sshnaidm/gemini-code-review-action@v2
         with:
+          # Match your exact GitHub Secret name
           gemini-key: ${{ secrets.GEMINI_FLASH }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          model: 'gemini-2.5-flash' # Using the fast, free-tier model
+          model: 'gemini-2.5-flash'
           prompt: |
-            You are an expert Next.js and TypeScript senior engineer reviewing a Pull Request. 
-            
-            CRITICAL RULE: Check the code diff for any imports coming from the '.yalc/' directory (e.g., import ... from '.yalc/...'). If you find any, explicitly state "PR REJECTED: Local .yalc imports detected. Please remove local package links before merging." in bold letters at the very top of your comment.
-            
-            Review the code diff and point out major bugs, performance bottlenecks, or bad Next.js layout/component patterns.
-            Be concise and only leave comments where an actual issue or improvement is found. Avoid nitpicking style or formatting.
+            You are a Next.js and TypeScript senior engineer reviewing a Pull Request.
+
+            CRITICAL RULES (Check for these first):
+            1. **Local Imports:** Check the code diff for any imports coming from '.yalc/'. If found, explicitly state "**PR REJECTED: Local .yalc imports detected. Remove local links.**" at the very top of your comment.
+            2. **Console Logs:** Absolutely no `console.log()` statements are allowed in production-ready code (unless they are explicitly `console.error` or `console.warn` inside an error catch block). Point out any `console.log` found and request its removal.
+
+            GENERAL CODE REVIEW GUIDELINES:
+            - **ESLint & Standards:** Flag anything that violates standard ESLint and Next.js recommended rules (e.g., missing dependencies in React hooks like useEffect, wrong placement of 'use client', unoptimized images using `<img>` instead of Next.js `<Image />`).
+            - **Redundancy:** Highlight any redundant logic, duplicated helper functions, unused imports/variables, or boilerplate code that could be simplified or modularized.
+            - **Architecture:** Keep an eye out for Next.js App Router performance patterns and potential bugs.
+
+            Be highly concise. Only leave comments where an actual issue, redundancy, or rule violation is found. Do not nitpick basic style or formatting.
