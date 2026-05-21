@@ -7,31 +7,69 @@ on:
 jobs:
   guardrails:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write # Required for creating code line comments
+      contents: read
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # 🚫 RULE 1: Block ONLY when a .yalc import is ADDED
-      - name: Check for .yalc Imports
+      # 🔍 Single Step to Scan and Comment on ALL Style/Log/Yalc Rules
+      - name: Scan Diff for Rule Violations
         run: |
-          if git diff origin/${{ github.base_ref }}...HEAD | grep -E "^\+.*from ['\"].*\.yalc/.*['\"]"; then
-            echo "❌ ERROR: New local .yalc import added! Please remove it before merging."
-            exit 1
-          fi
+          # Initialize a tracker flag
+          HAS_ERRORS=false
 
-      # 🚫 RULE 2: Block ONLY when a console.log is ADDED
-      - name: Check for console.log
-        run: |
-          if git diff origin/${{ github.base_ref }}...HEAD | grep -E "^\+.*console\.log" | grep -v "console.error" | grep -v "console.warn"; then
-            echo "❌ ERROR: New console.log() added. Please clean up your debug logs."
-            exit 1
-          fi
+          # Read the raw unified git diff block line-by-line
+          # -U0 means we get zero context lines, giving us pure line-number tracking
+          git diff origin/${{ github.base_ref }}...HEAD -U0 | while read -r line; do
+          
+            # 📁 Track the current filename being inspected
+            if [[ "$line" == "+++ b/"* ]]; then
+              filename=$(echo "$line" | cut -c 7-)
+          
+            # 🔢 Track the active relative line number from the hunk header
+            elif [[ "$line" == "@@"* ]]; then
+              line_num=$(echo "$line" | sed -E 's/@@ .*\+([0-9]+).*/\1/')
+          
+            # 🔍 If it's a line addition line, parse it for our exact guardrail targets
+            elif [[ "$line" == "+"* ]]; then
+          
+              # Rule Check A: Added a .yalc local package link
+              if [[ "$line" =~ from[[:space:]][\'\"].*\\.yalc\/.*[\'\"] ]]; then
+                echo "::error file=$filename,line=$line_num::❌ PR REJECTED: Local .yalc import found. Please clean up local links before merging."
+                HAS_ERRORS=true
+              fi
 
-      # 🚫 RUN TESTS & ESLINT
+              # Rule Check B: Added an unapproved console.log statement
+              if [[ "$line" == *"console.log"* && "$line" != *"console.error"* && "$line" != *"console.warn"* ]]; then
+                echo "::error file=$filename,line=$line_num::❌ ERROR: Production code cannot contain console.log(). Use console.error or strip debug logs."
+                HAS_ERRORS=true
+              fi
+          
+              # Increment tracking line counter dynamically for lines inside the hunk
+              ((line_num++))
+            fi
+
+            # Export the error flag status safely outside the streaming pipeline while keeping the environment state intact
+            if [ "$HAS_ERRORS" = true ]; then
+              echo "GLOBAL_FAIL=true" >> $GITHUB_ENV
+            fi
+          done
+
+      # 🚫 Run ESLint (This natively handles the inline styles block we added to your Flat Config!)
       - name: Install Dependencies
         run: npm ci
 
-      - name: Run ESLint
-        run: npm run lint
+      - name: Run ESLint with Automatic Annotations
+        # --format stylish pipes ESLint errors natively straight into line comments
+        run: npm run lint -- --format stylish
+
+      # 🏁 Final Enforcement Checkpoint
+      - name: Check Overall Status & Fail Build
+        if: env.GLOBAL_FAIL == 'true'
+        run: |
+          echo "❌ Guardrails failed because one or more line rule policies were breached. See code comments above!"
+          exit 1

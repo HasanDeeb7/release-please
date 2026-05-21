@@ -15,29 +15,59 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Crucial for git diff to work cleanly
+          fetch-depth: 0
 
+      # Attempt 1: Standard Execution
       - name: Gemini AI Reviewer
+        id: ai_review
         uses: sshnaidm/gemini-code-review-action@v2
+        continue-on-error: true
         with:
           gemini-key: ${{ secrets.GEMINI_FLASH }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           model: 'gemini-2.5-flash'
           review-title: '🧠 AI Architecture Review'
-          post-if-error: 'false' # ⚡ Prevent formatting fallbacks or error comments
+          post-if-error: 'false'
           prompt: |
             You are a Principal Software Engineer specializing in Next.js (App Router), TypeScript, and React.
-            
             Context: Static formatting, syntax errors, linting, console.logs, and banned inline styles are already blocked by our CI pipeline. Do NOT review or comment on those things.
-            
             Your sole focus is to review the code diff for semantic bugs, logic errors, architectural anti-patterns, and performance flaws.
-            
             CRITICAL NEXT.JS & LOGIC FOCUS AREAS:
             1. **Server vs. Client Components:** Watch out for components using 'use client' unnecessarily, or conversely, attempting to use server-only features inside Client Components.
             2. **Data Fetching & Caching:** Check async/await components in the App Router. Ensure data fetching doesn't cause waterfall loading bottlenecks.
             3. **Data Mutation & Security:** Inspect Server Actions or Route Handlers (`route.ts`) for missing authorization guards or unvalidated input.
             4. **Missing Edge Cases:** Look for unhandled Promise rejections or missing `try/catch` error states.
-            
+            OUTPUT RULE: 
+            Be highly critical but concise. Do not praise the code. 
+            CRITICAL: If you find absolutely NO architectural bugs, logic flaws, or edge-case errors, your entire response must be exactly this single line: 
+            "🚀 **Code logic and Next.js architecture look solid! No logic errors or structural flaws detected.**"
+
+      # Error Interception: If Attempt 1 fails with a 503, wait 15 seconds
+      - name: Retry Gemini Review on Failure
+        if: steps.ai_review.outcome == 'failure'
+        run: |
+          echo "⚠️ Google API returned a 503 error. Waiting 15 seconds to retry..."
+          sleep 15
+
+      # Attempt 2: Identical Redundant execution with the same instructions
+      - name: Gemini AI Reviewer (Second Attempt)
+        if: steps.ai_review.outcome == 'failure'
+        uses: sshnaidm/gemini-code-review-action@v2
+        with:
+          gemini-key: ${{ secrets.GEMINI_FLASH }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          model: 'gemini-2.5-flash'
+          review-title: '🧠 AI Architecture Review (Retry)'
+          post-if-error: 'false'
+          prompt: |
+            You are a Principal Software Engineer specializing in Next.js (App Router), TypeScript, and React.
+            Context: Static formatting, syntax errors, linting, console.logs, and banned inline styles are already blocked by our CI pipeline. Do NOT review or comment on those things.
+            Your sole focus is to review the code diff for semantic bugs, logic errors, architectural anti-patterns, and performance flaws.
+            CRITICAL NEXT.JS & LOGIC FOCUS AREAS:
+            1. **Server vs. Client Components:** Watch out for components using 'use client' unnecessarily, or conversely, attempting to use server-only features inside Client Components.
+            2. **Data Fetching & Caching:** Check async/await components in the App Router. Ensure data fetching doesn't cause waterfall loading bottlenecks.
+            3. **Data Mutation & Security:** Inspect Server Actions or Route Handlers (`route.ts`) for missing authorization guards or unvalidated input.
+            4. **Missing Edge Cases:** Look for unhandled Promise rejections or missing `try/catch` error states.
             OUTPUT RULE: 
             Be highly critical but concise. Do not praise the code. 
             CRITICAL: If you find absolutely NO architectural bugs, logic flaws, or edge-case errors, your entire response must be exactly this single line: 
