@@ -22,9 +22,8 @@ jobs:
           # Initialize a tracker flag
           HAS_ERRORS=false
 
-          # Read the raw unified git diff block line-by-line
-          # -U0 means we get zero context lines, giving us pure line-number tracking
-          git diff origin/${{ github.base_ref }}...HEAD -U0 | while read -r line; do
+          # Process Substitution avoids subshell data loss bugs caused by piping (|)
+          while read -r line; do
           
             # 📁 Track the current filename being inspected
             if [[ "$line" == "+++ b/"* ]]; then
@@ -37,13 +36,13 @@ jobs:
             # 🔍 If it's a line addition line, parse it for our exact guardrail targets
             elif [[ "$line" == "+"* ]]; then
           
-              # Rule Check A: Added a .yalc local package link
-              if [[ "$line" =~ from[[:space:]][\'\"].*\\.yalc\/.*[\'\"] ]]; then
+              # 🚫 Rule Check A: Bulletproof substring check for .yalc/ additions
+              if [[ "$line" == *".yalc/"* ]]; then
                 echo "::error file=$filename,line=$line_num::❌ PR REJECTED: Local .yalc import found. Please clean up local links before merging."
                 HAS_ERRORS=true
               fi
 
-              # Rule Check B: Added an unapproved console.log statement
+              # 🚫 Rule Check B: Bulletproof substring check for console.log additions
               if [[ "$line" == *"console.log"* && "$line" != *"console.error"* && "$line" != *"console.warn"* ]]; then
                 echo "::error file=$filename,line=$line_num::❌ ERROR: Production code cannot contain console.log(). Use console.error or strip debug logs."
                 HAS_ERRORS=true
@@ -52,12 +51,12 @@ jobs:
               # Increment tracking line counter dynamically for lines inside the hunk
               ((line_num++))
             fi
+          done < <(git diff origin/${{ github.base_ref }}...HEAD -U0)
 
-            # Export the error flag status safely outside the streaming pipeline while keeping the environment state intact
-            if [ "$HAS_ERRORS" = true ]; then
-              echo "GLOBAL_FAIL=true" >> $GITHUB_ENV
-            fi
-          done
+          # Export the error flag status safely to the global workflow memory environment
+          if [ "$HAS_ERRORS" = true ]; then
+            echo "GLOBAL_FAIL=true" >> $GITHUB_ENV
+          fi
 
       # 🚫 Run ESLint (This natively handles the inline styles block we added to your Flat Config!)
       - name: Install Dependencies
