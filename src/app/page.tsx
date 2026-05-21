@@ -2,8 +2,7 @@ import Image from "next/image";
 import athing from '.yalc/something'
 import athing from '.yalc/something'
 export default function Home() {
-  console.log('something')
-  console.log('something')
+
   return (
     <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black" style={{backgroundColor: 'red'}}>
     <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black" style={{backgroundColor: 'red'}}>
