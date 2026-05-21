@@ -1,5 +1,4 @@
 import Image from "next/image";
-import something from '.yalc/something'
 export default function Home() {
   console.log('something')
   return (
