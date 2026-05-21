@@ -1,0 +1,40 @@
+name: Next.js Code Guardrails
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  guardrails:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Gets full history for git diff
+
+      # RULE 1: Block .yalc imports
+      - name: Check for .yalc Imports
+        run: |
+          if git diff origin/${{ github.base_ref }}...HEAD | grep -E "from ['\"].*\.yalc/.*['\"]"; then
+            echo "❌ ERROR: Local .yalc imports detected! Please remove them before merging."
+            exit 1
+          fi
+
+      # RULE 2: Block console.log
+      - name: Check for console.log
+        run: |
+          if git diff origin/${{ github.base_ref }}...HEAD | grep "+.*console\.log" | grep -v "console.error" | grep -v "console.warn"; then
+            echo "❌ ERROR: console.log() found in your changes. Please clean up your debug logs."
+            exit 1
+          fi
+
+      # RULE 3: Strict ESLint & TypeScript Checks
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run Next.js Build (Typechecking & Redundancy compiler checks)
+        run: npm run build

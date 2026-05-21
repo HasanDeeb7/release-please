@@ -15,8 +15,7 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v4
         with:
-          # CRITICAL FIX: Downloads full history so git diff doesn't throw a 128 error
-          fetch-depth: 0
+          fetch-depth: 0 # Crucial for git diff to work cleanly
 
       - name: Gemini AI Reviewer
         uses: sshnaidm/gemini-code-review-action@v2
@@ -25,15 +24,18 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           model: 'gemini-2.5-flash'
           prompt: |
-            You are a Next.js and TypeScript senior engineer reviewing a Pull Request.
+            You are a Principal Software Engineer specializing in Next.js (App Router), TypeScript, and React.
+            
+            Context: Static formatting, syntax errors, linting, console.logs, and banned inline styles are already blocked by our CI pipeline. Do NOT review or comment on those things.
 
-            CRITICAL RULES (Check for these first):
-            1. **Local Imports:** Check the code diff for any imports coming from '.yalc/'. If found, explicitly state "**PR REJECTED: Local .yalc imports detected. Remove local links.**" at the very top of your comment.
-            2. **Console Logs:** Absolutely no `console.log()` statements are allowed in production-ready code (unless they are explicitly `console.error` or `console.warn` inside an error catch block). Point out any `console.log` found and request its removal.
+            Your sole focus is to review the code diff for semantic bugs, logic errors, architectural anti-patterns, and performance flaws.
 
-            GENERAL CODE REVIEW GUIDELINES:
-            - **ESLint & Standards:** Flag anything that violates standard ESLint and Next.js recommended rules (e.g., missing dependencies in React hooks like useEffect, wrong placement of 'use client', unoptimized images using `<img>` instead of Next.js `<Image />`).
-            - **Redundancy:** Highlight any redundant logic, duplicated helper functions, unused imports/variables, or boilerplate code that could be simplified or modularized.
-            - **Architecture:** Keep an eye out for Next.js App Router performance patterns and potential bugs.
+            CRITICAL NEXT.JS & LOGIC FOCUS AREAS:
+            1. **Server vs. Client Components:** Watch out for components using 'use client' unnecessarily, or conversely, attempting to use server-only features (like direct DB calls or backend environment variables) inside Client Components.
+            2. **Data Fetching & Caching:** Check async/await components in the App Router. Ensure data fetching doesn't cause waterfall loading bottlenecks and leverages Next.js fetch caching patterns correctly. Flag accidental infinite loops caused by state updates inside rendering paths.
+            3. **Data Mutation & Security:** Inspect Server Actions or Route Handlers (`route.ts`). Check for missing authorization guards, unvalidated user input, or sensitive environment variables exposed to the client wrapper.
+            4. **Missing Edge Cases:** Look for unhandled Promise rejections, missing `try/catch` error states in data mutations, or components that will crash if an expected API property returns `undefined` or `null`.
+            5. **Unintentional Re-renders:** Spot heavy computations inside React components missing `useMemo`, or callback handlers passed down to optimized children missing `useCallback`.
 
-            Be highly concise. Only leave comments where an actual issue, redundancy, or rule violation is found. Do not nitpick basic style or formatting.
+            OUTPUT RULE: 
+            Be highly critical but concise. Do not praise the code or say "Looks good!". If you find no deep logic flaws or architectural concerns, do not leave any comment at all.
