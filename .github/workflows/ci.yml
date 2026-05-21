@@ -36,28 +36,22 @@ jobs:
             # 🔍 If it's a line addition line, parse it for our exact guardrail targets
             elif [[ "$line" == "+"* ]]; then
           
-              # 🚫 Rule Check A: yalc imports — both path-based (.yalc/) and protocol-based (yalc:)
-              if [[ "$line" == *".yalc/"* || "$line" == *'"yalc:'* || "$line" == *"'yalc:"* ]]; then
+              # 🚫 Rule Check A: yalc imports — path-based (.yalc/) and protocol-based (yalc:)
+              if [[ "$line" == *".yalc/"* ]] || [[ "$line" == *"yalc:"* ]]; then
                 echo "::error file=$filename,line=$line_num::❌ PR REJECTED: Local yalc link found. Remove yalc imports before merging."
                 HAS_ERRORS=true
               fi
 
               # 🚫 Rule Check B: console.log additions
-              if [[ "$line" == *"console.log"* && "$line" != *"console.error"* && "$line" != *"console.warn"* ]]; then
+              if [[ "$line" == *"console.log"* ]]; then
                 echo "::error file=$filename,line=$line_num::❌ ERROR: Production code cannot contain console.log(). Use console.error or strip debug logs."
                 HAS_ERRORS=true
               fi
 
-              # 🚫 Rule Check C: Inline styles — flag style={{ unless the value references a JS variable
-              # Matches style={{ but skips purely dynamic expressions like style={{ width: varName }}
+              # 🚫 Rule Check C: Inline styles — flag style={{ (use CSS modules or className instead)
               if [[ "$line" == *"style={{"* ]]; then
-                # Allow if the only values after {{ are variable references (no string/number literals)
-                # Extract the style value content and check for static literals
-                style_content=$(echo "$line" | sed -E "s/.*style=\{\{([^}]*)\}\}.*/\1/")
-                if echo "$style_content" | grep -qE "'[^']*'|\"[^\"]*\"|[[:space:]]:[[:space:]]*[0-9]"; then
-                  echo "::error file=$filename,line=$line_num::❌ ERROR: Inline styles with static values are not allowed. Use CSS modules or a className instead."
-                  HAS_ERRORS=true
-                fi
+                echo "::error file=$filename,line=$line_num::❌ ERROR: Inline styles are not allowed. Use CSS modules or a className. If a dynamic JS value is required, leave a comment explaining why."
+                HAS_ERRORS=true
               fi
           
               # Increment tracking line counter dynamically for lines inside the hunk
